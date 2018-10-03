@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Data
+data/
+*.tsv
+*.csv
+*.pkl
+
 # Distribution / packaging
 .Python
 build/
