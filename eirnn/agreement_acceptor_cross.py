@@ -1,10 +1,15 @@
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
+import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
 import random
 import six
 
-from rnn_model import RNNModel
+from rnn_model_cross import RNNModel
 from eirnn_cross import EIRnn
 from utils import gen_inflect_from_vocab, dependency_fields
 
@@ -66,7 +71,7 @@ def pad_sequences(sequences, maxlen=None, dtype='int32',
 
 class RNNAcceptor(RNNModel):
 
-    def create_train_and_test(self, examples):
+    def create_train_and_test(self, examples, test_size):
         d = [[], []]
         for i, s, dep in examples:
             d[i].append((i, s, dep))
@@ -82,14 +87,17 @@ class RNNAcceptor(RNNModel):
 
         Y, X, deps = zip(*examples)
         Y = np.asarray(Y)
-        print(X[0])
         X = pad_sequences(X, maxlen = self.maxlen)
-        print(X[0])
+
         n_train = int(self.prop_train * len(X))
         self.X_train, self.Y_train = X[:n_train], Y[:n_train]
-        self.X_test, self.Y_test = X[n_train:n_train+3000], Y[n_train:n_train+5000]
         self.deps_train = deps[:n_train]
-        self.deps_test = deps[n_train:n_train+3000]
+        if (test_size > 0) :
+            self.X_test, self.Y_test = X[n_train : n_train+test_size], Y[n_train : n_train+test_size]
+            self.deps_test = deps[n_train : n_train+test_size]
+        else :
+            self.X_test, self.Y_test = X[n_train:], Y[n_train:]
+            self.deps_test = deps[n_train:]
 
     def create_model(self):
         self.log('Creating model')
@@ -121,7 +129,8 @@ class RNNAcceptor(RNNModel):
         
         self.test_results = pd.DataFrame(recs, columns=columns)
         xxx = self.test_results['correct']
-        print('Accuracy' + str(sum(xxx)))
+        print('Accuracy : ' + str(sum(xxx)))
+        return sum(xxx)
 
 class PredictVerbNumber(RNNAcceptor):
 

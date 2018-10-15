@@ -21,7 +21,7 @@ class RNNModel(object):
                              'X_test', 'Y_test', 'deps_test']
 
     def __init__(self, filename=None, serialization_dir=None,
-                 batch_size=16, embedding_size=50, rnn_size=15,
+                 batch_size=16, embedding_size=50, rnn_size=50,
                  maxlen=50, prop_train=0.9, rnn_output_size=10,
                  mode='infreq_pos', vocab_file=filenames.vocab_file,
                  equalize_classes=False, criterion=None,
@@ -49,15 +49,15 @@ class RNNModel(object):
     def log(self, message):
         print (message)
 
-    def pipeline(self, train = True, load = False, model = ''):
-        examples = self.load_examples()
-        self.create_train_and_test(examples)
+    def pipeline(self, train = True, load = False, model = '', test_size=7000, train_size=None, model_prefix='__', epochs=20):
+        examples = self.load_examples(train_size)
+        self.create_train_and_test(examples, test_size)
         self.create_model()
         if (load) :
             self.load_model(model)
         if (train) :
-            self.train()
-        self.results()
+            self.train(epochs, model_prefix)
+        acc = self.results()
 
     def load_examples(self, n_examples=None):
         '''
@@ -99,7 +99,7 @@ class RNNModel(object):
     def load_model(self, model) :
         self.model = torch.load(model)
 
-    def train(self, n_epochs=10):
+    def train(self, n_epochs=10, model_prefix='__'):
         self.log('Training')
         if not hasattr(self, 'model'):
             self.create_model()
@@ -107,12 +107,19 @@ class RNNModel(object):
         loss_function = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.model.parameters(), lr = 0.001)
         prev_param = list(self.model.parameters())[0].clone()
+        max_acc = 0
         print(len(self.X_train))
-        for epoch in range(100) :
+        for epoch in range(10) :
             print('epoch : ', epoch)
-            for index in range(200) :
-                if (index % 10 == 0) :
-                    print (index)
+            for index in range(len(self.X_train)) :
+                if ((index+1) % 1000 == 0) :
+                    print (index+1)
+                    if (epoch == 0 or (index+1) % 3000 == 0):
+                        acc = self.results()
+                        if (acc >= max_acc) :
+                            model_name = model_prefix + '.pkl'
+                            torch.save(self.model, model_name)
+                            max_acc = acc
                 
                 self.model.zero_grad()
                 output = self.model(self.X_train[index].tolist(), input_once = False)
@@ -131,12 +138,8 @@ class RNNModel(object):
             print(torch.equal(prev_param, param))
             prev_param = param.clone()
 
-            self.results()
-            # model_name = 'eirnn_cross_model' + str(epoch) + '.pkl'
-            # torch.save(self.model, model_name)
-
-        # history = self.model.fit(self.X_train, self.Y_train,
-        #                          validation_split=0.1,
-        #                          batch_size=self.batch_size,
-        #                          verbose=self.verbose,
-        #                          nb_epoch=n_epochs, callbacks=[es])
+            acc = self.results()
+            if (acc > max_acc) :
+                model_name = model_prefix + '.pkl'
+                torch.save(self.model, model_name)
+                max_acc = acc

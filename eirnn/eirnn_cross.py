@@ -8,6 +8,7 @@ import math
 def rectify(x):
     relu = nn.ReLU()
     return relu(x)
+    # return x
 
 class EIRnnModule(nn.Module):
     def __init__(self, input_units, output_units, hidden_units, embedding_dim = 50, rectify_inputs = True, var_input = 0.01**2, var_rec = 0.15**2, dt = 0.5, tau=100):
@@ -27,12 +28,11 @@ class EIRnnModule(nn.Module):
         self.w_in = rectify(Variable(torch.randn(hidden_units, input_units), requires_grad = True))
         self.w_rec = rectify(Variable(torch.randn(hidden_units, hidden_units), requires_grad = True))
         self.w_out = rectify(Variable(torch.randn(output_units, hidden_units), requires_grad = True))
-        # self.w_in = torch.randn((hidden_units, input_units), requires_grad = True)
-        # self.w_rec = torch.randn((hidden_units, hidden_units), requires_grad = True)
-        # self.w_out = torch.randn((output_units, hidden_units), requires_grad = True)
         self.d_rec = Variable(torch.zeros(hidden_units, hidden_units), requires_grad=False)
+        self.no_self_connect = Variable(torch.ones(hidden_units, hidden_units), requires_grad=False)
 
         for i in range(hidden_units) :
+            self.no_self_connect = 0.0
             if (i < 0.8*hidden_units):
                 self.d_rec[i][i] = 1.0
             else:
@@ -63,9 +63,18 @@ class EIRnnModule(nn.Module):
         rectified_states = rectify(states)
         # rectified_states = states
 
+        # No self connections 
+        self.w_rec = self.w_rec * self.no_self_connect
+
         # Apply Dale's on recurrent weights
         w_rec_dale = torch.mm(self.w_rec, self.d_rec)
         # w_rec_dale = self.w_rec
+
+        # print('W_in : ', self.w_in)
+        # print('W_rec : ', self.w_rec)
+        # print('W_out : ', self.w_out)
+        # print('D_rec : ', self.d_rec)
+        # print('Dale : ', w_rec_dale)
 
         hidden_update = torch.mm(w_rec_dale, rectified_states)
         input_update = torch.mm(self.w_in, input_)

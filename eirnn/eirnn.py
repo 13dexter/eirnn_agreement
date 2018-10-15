@@ -103,7 +103,7 @@ class EIRnn(nn.Module):
         # state_n = []
         layer_output = None
         all_layers_last_out = []
-        inputx = torch.from_numpy(input_)
+        inputx = torch.tensor(input_, dtype=torch.long)
         for layer in range(self.num_layers):
             cell = self.get_cell(layer)
 
@@ -111,8 +111,9 @@ class EIRnn(nn.Module):
             output = []
             state_ = state
             for time in range(max_time):
-                # print('t', time, inputx[time])
-                next_state, out = cell(input_ = self.embedding_layer(Variable(inputx[time], requires_grad=False)), prev_state = state_)
+                # print('t', time, input_[time], inputx[time], Variable(inputx[time]))
+                # print(self.embedding_layer(Variable(inputx[time])))
+                next_state, out = cell(input_ = self.embedding_layer(Variable(inputx[time])), prev_state = state_)
                 output.append(out)
                 state_ = next_state
                 last_out = out

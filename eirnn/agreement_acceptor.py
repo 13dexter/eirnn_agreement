@@ -1,3 +1,8 @@
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
+import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
@@ -87,14 +92,14 @@ class RNNAcceptor(RNNModel):
         print(X[0])
         n_train = int(self.prop_train * len(X))
         self.X_train, self.Y_train = X[:n_train], Y[:n_train]
-        self.X_test, self.Y_test = X[n_train:n_train+3000], Y[n_train:n_train+5000]
+        self.X_test, self.Y_test = X[n_train:n_train+20000], Y[n_train:n_train+20000]
         self.deps_train = deps[:n_train]
-        self.deps_test = deps[n_train:n_train+3000]
+        self.deps_test = deps[n_train:n_train+20000]
 
     def create_model(self):
         self.log('Creating model')
         print('vocab size', len(self.vocab_to_ints))
-        self.model = EIRnn(embedding_dim = self.embedding_size, hidden_size=self.hidden_size, output_size=self.output_size, vocab_size=len(self.vocab_to_ints)+1)
+        self.model = EIRnn(embedding_dim = self.embedding_size, hidden_size=self.embedding_size, output_size=self.rnn_output_size, vocab_size=len(self.vocab_to_ints)+1)
 
     # def evaluate(self):
     #     return self.model.evaluate(self.X_test, self.Y_test,
@@ -120,7 +125,7 @@ class RNNAcceptor(RNNModel):
         
         self.test_results = pd.DataFrame(recs, columns=columns)
         xxx = self.test_results['correct']
-        print('Accuracy' + str(sum(xxx)))
+        print('Accuracy : ' + str(sum(xxx)))
 
 class PredictVerbNumber(RNNAcceptor):
 

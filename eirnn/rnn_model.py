@@ -21,8 +21,8 @@ class RNNModel(object):
                              'X_test', 'Y_test', 'deps_test']
 
     def __init__(self, filename=None, serialization_dir=None,
-                 batch_size=16, embedding_size=50, rnn_size=15,
-                 maxlen=50, prop_train=0.9, rnn_output_size=10,
+                 batch_size=16, embedding_size=50, 
+                 maxlen=50, prop_train=0.9, rnn_output_size=50,
                  mode='infreq_pos', vocab_file=filenames.vocab_file,
                  equalize_classes=False, criterion=None,
                  verbose=1):
@@ -36,7 +36,6 @@ class RNNModel(object):
         self.vocab_file = vocab_file
         self.batch_size = batch_size
         self.embedding_size = embedding_size
-        self.rnn_size = rnn_size
         self.prop_train = prop_train
         self.mode = mode
         self.rnn_output_size = rnn_output_size
@@ -107,15 +106,20 @@ class RNNModel(object):
         loss_function = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.model.parameters(), lr = 0.001)
         prev_param = list(self.model.parameters())[0].clone()
+
         print(len(self.X_train))
         for epoch in range(100) :
             print('epoch : ', epoch)
-            for index in range(200) :
-                if (index % 10 == 0) :
-                    print (index)
+            for index in range(len(self.X_train)) :
+                if ((index+1) % 5000 == 0) :
+                    print (index+1)
+                    if (epoch == 0 or (index+1) % 10000 == 0):
+                        self.results()
+                        model_name = 'eirnn_model' + str(epoch) + '.pkl'
+                        torch.save(self.model, model_name)
                 
                 self.model.zero_grad()
-                output = self.model(self.X_train[index].tolist())
+                output = self.model(self.X_train[index])
                 if (self.Y_train[index] == 0) :
                     actual = torch.autograd.Variable(torch.tensor([0]), requires_grad=False)
                 else :
@@ -132,5 +136,5 @@ class RNNModel(object):
             prev_param = param.clone()
 
             self.results()
-            # model_name = 'eirnn_cross_model' + str(epoch) + '.pkl'
-            # torch.save(self.model, model_name)
+            model_name = 'eirnn_model' + str(epoch) + '.pkl'
+            torch.save(self.model, model_name)
